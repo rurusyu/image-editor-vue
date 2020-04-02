@@ -1,6 +1,7 @@
 <template>
   <div>
     <canvas ref="can" width="400" height="400" id="canvas1"></canvas>
+     <button @click="loadRef">ref불러오기</button>
   </div>
 </template>
 
@@ -15,35 +16,40 @@ export default {
     return {
       canvas:'',
       ref:'',
-      rect:0,
-      triangle:0,
-      circle:0,
+      shapeList:[]
     }
   },
   props:{
-    shapeList: {
-      type: Array,
+    addShape:{
+      type: String,
       required: false,
     }
   },
-   watch:{
-    shapeList(){
-      console.log('watch',this.$props.shapeList[1]);
-    
+  watch:{
+    addShape(){
+    this.shapeList.push(this.$props.addShape);
+       this.shapeList.map((item)=>{
+         if(item === 'rect'){
+           this.addRect();
+           this.shapeList = [];
+         }else{
+           this.addTriAngle();
+           this.shapeList = [];
+         }
+       });   
     }
   },
   created(){
-    this.rect = this.$props.shapeList[0].rect;
-    this.triangle = this.$props.shapeList[1].triangle;
-    this.circle = this.$props.shapeList[2].circle;
-    console.log(this.rect,this.triangle,this.circle);
+
   },
   mounted(){
     this.ref = this.$refs.can;
     this.canvas = new fabric.Canvas(this.ref);
-    console.log('mounted',this.$props.shapeList[0].rect);
+    this.data = this.canvas;
   },
- 
+ beforeUpdate(){
+   console.log('update');
+ },
 
   methods:{
     addRect(){
@@ -56,13 +62,33 @@ export default {
          stroke:'black'
       })
       this.canvas.add(rect);
+      return rect;
+    },
+    addTriAngle(){
+      let tri = new fabric.Triangle({
+         left: 10,
+         top: 10,
+         height: 50,
+         width: 50,
+         fill: 'red',
+         stroke:'black'
+      })
+      this.canvas.add(tri);
+    },
+     loadRef(){
+      console.log('ref클릭',this.$refs.can);
     }
   }
 }
 </script>
 <style scoped lang="scss">
 #canvas1 {
-  border : 1px solid red;
+  border: 1px solid red;
+  left: 0px;
+  top: 0px;
+  width: 552px;
+  height: 312px;
+  transform: rotate(0deg);
 }
 </style>
 

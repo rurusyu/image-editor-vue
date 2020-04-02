@@ -1,67 +1,52 @@
 <template>
   <div class="home">
-    <div v-for="item in num" :key="item">
-      <canvas-view :shapeList="shapeList"></canvas-view>
-    </div>
-    <button @click="addCanvas">+</button>
+     
     <div class="menu">
       <div class="rect" @click="clickRect">사각형</div>
-      <div class="rect" @click="clickTriAngle">삼각형</div>
-      <div class="rect" @click="clickCircle">원형</div>
+      <div class="rect" @click="clickTriangle">삼각형</div>
+      <button @click="addCanvas">+</button>
+    </div>
+    <div>
+      <wrapper-canvas :NumberOfCanvas="NumberOfCanvas" :addShape="addShape"></wrapper-canvas>
     </div>
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import CanvasView from '@/components/Canvas.vue'
+import WrapperCanvas from '@/components/WrapperCanvas.vue'
 
 export default {
   name: 'Home',
   components: {
-    CanvasView
+    WrapperCanvas,
   },
   data(){
     return {
-      num: 1,
-      shapeList: [
-        {rect:0},
-        {triangle:0},
-        {circle:0},
-      ]
+      NumberOfCanvas: 1,
+      addShape:''
     }
+  },
+  beforeUpdate(){
+    console.log('update');
   },
   methods:{
     addCanvas(){
-      this.num++;
-      console.log('num', this.num);
+      this.NumberOfCanvas++;
     },
     clickRect(){
-      console.log('클릭');
-      // this.shapeList.push('rect')
-      this.shapeList[0].rect++;
-      this.$set(this.shapeList);
-      
+      this.addShape = 'rect';
     },
-    clickTriAngle(){
-      console.log('클릭');
-      // this.shapeList.push('rect')
-      this.shapeList[1].triangle++;
-      this.$set(this.shapeList);
+    clickTriangle(){
+      this.addShape = 'tri';
     },
-    clickCircle(){
-      console.log('클릭');
-      // this.shapeList.push('rect')
-      this.shapeList[2].circle++;
-      this.$set(this.shapeList);
-    }
+  
   }
 }
 </script>
 <style lang="scss" scoped>
 .home{
-    border: 1px solid blue;
-
+  display: flex;
   .menu {
     border: 1px solid blue;
     width: 200px;
@@ -73,6 +58,14 @@ export default {
       height: 50px;
 
     }
+  }
+
+  button{
+    width: 100px;
+    height: 50px;
+    background-color: #007AFF;
+    color: white;
+    font-size: 20px;
   }
 }
 </style>
