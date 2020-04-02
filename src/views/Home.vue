@@ -9,12 +9,13 @@
     <div>
       <wrapper-canvas :NumberOfCanvas="NumberOfCanvas" :addShape="addShape"></wrapper-canvas>
     </div>
+  
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import WrapperCanvas from '@/components/WrapperCanvas.vue'
+import WrapperCanvas from '@/components/WrapperCanvas.vue';
 
 export default {
   name: 'Home',
@@ -27,8 +28,8 @@ export default {
       addShape:''
     }
   },
-  beforeUpdate(){
-    console.log('update');
+  mounted(){
+    console.log(this.$refs.pc);
   },
   methods:{
     addCanvas(){
@@ -58,6 +59,18 @@ export default {
       height: 50px;
 
     }
+  }
+
+  // .preview{
+  //   border:1px solid black;
+  //   width: 100px;
+  //   height: 100px;
+  // }
+
+  .pc1{
+    width: 100px;
+    height: 100px;
+    border: 1px solid black;
   }
 
   button{
