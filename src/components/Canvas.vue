@@ -1,6 +1,7 @@
 <template>
   <div>
     <canvas ref="can" width="400" height="400" class="canvas1" ></canvas>
+    <button @click="saveObjects">Save</button>
     <!-- <canvas ref="can" width="200" height="200" class="canvas1" v-else></canvas> -->
   </div>
 </template>
@@ -32,7 +33,15 @@ export default {
     this.ref = this.$refs.can;
     this.canvas = new fabric.Canvas(this.ref);
     this.data = this.canvas;
-     console.log('name11',this.$props.className);
+    console.log('name11',this.$props.className);
+
+    let items = window.localStorage.getItem('_tempItems');
+
+    if(items) {
+      this.canvas.loadFromJSON(items, function(o, object) {
+        fabric.log(o, object);
+      });
+    }
   },
  beforeUpdate(){
    console.log('update');
@@ -40,9 +49,8 @@ export default {
 
   methods:{
     addRect(){
-
+      console.log('canvas', this.canvas);
       if(!this.$props.className){
-
         let rect = new fabric.Rect({
            left: 10,
            top: 10,
@@ -53,8 +61,8 @@ export default {
         })
         this.canvas.add(rect);
         return rect;
-
-      }else{
+      }
+      else {
         let rect = new fabric.Rect({
            left: 10 / 10,
            top: 10 / 10,
@@ -78,6 +86,9 @@ export default {
       })
       this.canvas.add(tri);
     },
+    saveObjects() {
+      window.localStorage.setItem('_tempItems', JSON.stringify({objects: this.canvas._objects}));
+    }
   }
 }
 </script>
@@ -88,7 +99,7 @@ export default {
   top: 0px;
   width: 552px;
   height: 312px;
-  transform: rotate(0deg);
+  /* transform: rotate(0deg); */
 }
 
 </style>

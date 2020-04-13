@@ -41,7 +41,6 @@ export default {
     clickTriangle(){
       this.addShape = 'tri';
     },
-  
   }
 }
 </script>
