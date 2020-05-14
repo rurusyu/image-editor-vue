@@ -1,7 +1,7 @@
 <template>
   <div class="wapper-canvas">
     <div v-for="(item, index) in NumberOfCanvas" :key="item" @click="selectCanvas(index+1)">
-          <canvas-view ref="foo" ></canvas-view>
+      <canvas-view ref="foo" :backgroundImage="backgroundImage" :images="images" :download="download" ></canvas-view>
     </div>
   
   </div>
@@ -21,23 +21,33 @@ export default {
       type: Number,
       required: false,
     },
-    addShape:{
+    backgroundImage: {
+      type: Object,
+      required: false
+    },
+    images: {
+      type: Array,
+      required: true
+    },
+    addShape: {
       type: String,
       required: false,
     },
-    className:{
-      type: String,
-      required: true,
+    download: {
+      type: Boolean,
+      required: true
     }
   },
   watch:{
     addShape(){
+      console.log('das', this.$refs.foo[0]);
       switch(this.$props.addShape){
         case'rect':
           return this.$refs.foo[0].addRect();
         case'tri':
           return this.$refs.foo[0].addTriAngle();
-          
+        case'text':
+          return this.$refs.foo[0].addText();
       }
     }
   },
@@ -47,7 +57,6 @@ export default {
   },
   mounted(){
     console.log('wrapper',this.$props.addShape);
-    console.log('name',this.$props.className);
   },
   methods:{
     loadRef(){
