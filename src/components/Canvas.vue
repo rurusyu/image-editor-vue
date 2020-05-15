@@ -7,24 +7,35 @@
       v-model="fontSize"
       @change="setFontSize"
     />
-    <canvas ref="can" width="1080" height="1080" class="canvas1" id="canvas" ></canvas>
+    <canvas ref="can" width="1080" height="300" class="canvas1" id="canvas" ></canvas>
     <button @click="saveObjects">Save</button>
+    <button @click="history('undo')">Undo</button>
+    <button @click="history('redo')">Redo</button>
+    <sketch-picker v-if="colorPicker" v-model="colors" @input="setBackgroundColor" />
   </div>
 </template>
 
 <script>
 
 import { fabric } from 'fabric';
+import { Sketch } from 'vue-color';
 
 export default {
   name: 'Canvas',
- 
+  components: {
+    'sketch-picker': Sketch
+  },
   data(){
     return {
       canvas:'',
       ref:'',
       shapeList:[],
       fontSize: 20,
+      backgroundColor: '#ffffff',
+      colors: {
+        rgba: { r: 255, g: 255, b: 255, a: 1 },
+        a: 1
+      }
     }
   },
   props:{
@@ -37,6 +48,10 @@ export default {
        required: true
      },
      download: {
+       type: Boolean,
+       required: true,
+     },
+     colorPicker: {
        type: Boolean,
        required: true,
      }
@@ -92,7 +107,7 @@ export default {
     download() {
       if(this.$props.download) {
         const canvas = document.getElementById('canvas');
-        const dataURL = canvas.toDataURL('image/png', 1.0);
+        const dataURL = canvas.toDataURL({ multiplier: 3 });
 
         var link = document.createElement('a');
 
@@ -106,9 +121,81 @@ export default {
       }
     }
   },
+  created() {
+    fabric.Canvas.prototype.historyInit = function () {
+      this.historyUndo = [];
+      this.historyRedo = [];
+      this.historyNextState = this.historyNext();
+
+      // vue watch? 혹은 어딘가에서 canvas.on 이벤트 밑에 3개 감시하고 있다가
+      // 그대로 실행? this.historySaveAction(this.canvas); this를 줘야 undefined 안 나올테니
+
+      this.on({
+        "object:added": this.historySaveAction,
+        "object:removed": this.historySaveAction,
+        "object:modified": this.historySaveAction
+      })
+    }
+
+    fabric.Canvas.prototype.historyNext = function () {
+      return JSON.stringify(this.toDatalessJSON(this.extraProps));
+    }
+
+    fabric.Canvas.prototype.historySaveAction = function () {
+      if (this.historyProcessing)
+        return;
+
+      const json = this.historyNextState;
+      this.historyUndo.push(json);
+      this.historyNextState = this.historyNext();
+    }
+
+    // 되돌리기
+    fabric.Canvas.prototype.undo = function (callback) {
+      this.historyProcessing = true;
+
+      const history = this.historyUndo.pop();
+      if (history) {
+        // 방금 취소한 행동을 기록하기 위해 배열에 넣음
+        this.historyRedo.push(this.historyNext());
+        this.historyNextState = history;
+        this._loadHistory(history, 'history:undo', callback);
+      } else {
+        this.historyProcessing = false;
+      }
+
+      this.historyProcessing = false;
+    },
+
+    // 되돌리기 실행 취소
+    fabric.Canvas.prototype.redo = function (callback) {
+      this.historyProcessing = true;
+      const history = this.historyRedo.pop();
+      if (history) {
+        this.historyUndo.push(this.historyNext());
+        this.historyNextState = history;
+        this._loadHistory(history, 'history:redo', callback);
+      } else {
+        this.historyProcessing = false;
+      }
+    },
+
+    fabric.Canvas.prototype._loadHistory = function(history, event, callback) {
+      let _this = this;
+
+      this.loadFromJSON(history, function() {
+        _this.renderAll();
+        _this.historyProcessing = false;
+
+      if (callback && typeof callback === 'function')
+        callback();
+      });
+    }
+  },
   mounted() {
     this.ref = this.$refs.can;
     this.canvas = new fabric.Canvas(this.ref);
+    this.canvas.historyInit();
     this.data = this.canvas;
 
     let items = window.localStorage.getItem('_tempItems');
@@ -140,10 +227,24 @@ export default {
       this.canvas.add(rect);
       return rect;
     },
+    addCircle() {
+      const circle = new fabric.Circle({
+        left: 150,
+        top: 150,
+        radius: 30,
+        strokeWidth: 1,
+        stroke: 'black',
+        fill: 'green',
+        selectable: true,
+        originX: 'center', originY: 'center'
+      })
+      this.canvas.add(circle);
+      return circle;
+    },
     addText() {
       const text = new fabric.IText('Type some Text', {
           fontFamily: 'Arial',
-          fontSize: 150,
+          fontSize: 50,
         });
 
       this.canvas.add(text);
@@ -151,10 +252,25 @@ export default {
     },
     setFontSize(e) {
       const activeObj = this.canvas.getActiveObject();
-      activeObj.fontSize = e.target.value;
+      activeObj.setFontSize(e.target.value);
+      // activeObj.fontSize = e.target.value;
       this.fontSize = e.target.value;
 
       this.canvas.renderAll();
+    },
+    setBackgroundColor (value) {
+      console.log('색상', value);
+      this.canvas.setBackgroundColor(value.hex8, this.canvas.renderAll.bind(this.canvas));
+      this.canvas.renderAll();
+    },
+    history(state) {
+      console.log('상태 변경', this.canvas.historyUndo);
+      
+      if(state === 'undo') {
+        this.canvas.undo()
+      } else {
+        this.canvas.redo()
+      }
     },
     changeText() {
       //  message,

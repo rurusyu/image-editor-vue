@@ -1,7 +1,7 @@
 <template>
   <div class="wapper-canvas">
     <div v-for="(item, index) in NumberOfCanvas" :key="item" @click="selectCanvas(index+1)">
-      <canvas-view ref="foo" :backgroundImage="backgroundImage" :images="images" :download="download" ></canvas-view>
+      <canvas-view ref="foo" :backgroundImage="backgroundImage" :colorPicker="colorPicker" :images="images" :download="download" ></canvas-view>
     </div>
   
   </div>
@@ -36,6 +36,10 @@ export default {
     download: {
       type: Boolean,
       required: true
+    },
+    colorPicker: {
+      type: Boolean,
+      required: true
     }
   },
   watch:{
@@ -44,8 +48,8 @@ export default {
       switch(this.$props.addShape){
         case'rect':
           return this.$refs.foo[0].addRect();
-        case'tri':
-          return this.$refs.foo[0].addTriAngle();
+        case'circle':
+          return this.$refs.foo[0].addCircle();
         case'text':
           return this.$refs.foo[0].addText();
       }

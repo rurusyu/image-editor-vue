@@ -11,9 +11,11 @@
   "dependencies": {
     "core-js": "^3.6.4",
     "fabric": "^3.6.3",
+    "fabric-history": "^1.6.0",
     "swiper": "^5.3.6",
     "vue": "^2.6.11",
     "vue-awesome-swiper": "^4.1.0",
+    "vue-color": "^2.7.1",
     "vue-router": "^3.1.5",
     "vuex": "^3.1.2"
   },

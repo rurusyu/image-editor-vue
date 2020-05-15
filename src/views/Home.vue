@@ -10,11 +10,13 @@
         <button type="button" @click="onBackImgDeleted">배경이미지 삭제</button>
       </div>
       <div class="inputWrapper object">
-        <button type="button" @click="onObjectCreate">오브젝트 생성</button>
+        <button type="button" @click="onObjectCreate('rect')">사각형 생성</button>
       </div>
-      <div class="inputWrapper text">
-        <span>텍스트 작성</span>
-        <input type="file" class="fileInput" ref="uploadImageFile" @change="onFileSelected" />
+      <div class="inputWrapper object">
+        <button type="button" @click="onObjectCreate('circle')">동그라미 생성</button>
+      </div>
+      <div class="inputWrapper object">
+        <button type="button" @click="onObjectCreate('text')">텍스트 생성</button>
       </div>
       <button @click="exportToPng">다운로드</button>
     </div>
@@ -23,6 +25,7 @@
         :NumberOfCanvas="NumberOfCanvas"
         :addShape="addShape"
         :backgroundImage="backgroundImage"
+        :colorPicker="colorPicker"
         :images="images"
         :download="download"
         />
@@ -45,6 +48,7 @@ export default {
       NumberOfCanvas: 1,
       addShape:'',
       backgroundImage: {},
+      colorPicker: true,
       images: [],
       download: false
     }
@@ -61,9 +65,12 @@ export default {
 
       this.backgroundImage = { 'image': URL.createObjectURL(image)};
       event.target.value ='';
+      this.colorPicker = false;
+      
     },
     onBackImgDeleted() {
       this.backgroundImage = {};
+      this.colorPicker = true;
     },
     onFileSelected(event) {
       const image = event.target.files[0];
@@ -71,8 +78,8 @@ export default {
       this.images.push(URL.createObjectURL(image));
       event.target.value ='';
     },
-    onObjectCreate() {
-      this.addShape = 'text';
+    onObjectCreate(shape) {
+      this.addShape = shape;
     },
     exportToPng() {
       this.download = !this.download;
