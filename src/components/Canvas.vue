@@ -13,7 +13,10 @@
     <button @click="history('redo')">Redo</button>
     <button @click="loadObjects">이미지 불러오기</button>
     <button @click="copyObject">이미지 복사</button>
-    <button @click="pasteObject">이미지 붙여넣기</button>
+    <button @click="setIndex('forward')">한 단계 앞으로</button>
+    <button @click="setIndex('backward')">한 단계 뒤로</button>
+    <button @click="setGroup">그룹으로 묶기</button>
+    <button @click="setUngroup">그룹 해제</button>
     <sketch-picker v-if="colorPicker" v-model="colors" @input="setBackgroundColor" />
   </div>
 </template>
@@ -147,6 +150,10 @@ export default {
     },
   },
   created() {
+    fabric.Object.prototype.getZIndex = function() {
+      return this.canvas.getObjects().indexOf(this);
+    }
+
     fabric.Canvas.prototype.historyInit = function () {
       this.historyUndo = [];
       this.historyRedo = [];
@@ -158,9 +165,17 @@ export default {
       this.on({
         "object:added": this.historySaveAction,
         "object:removed": this.historySaveAction,
-        "object:modified": this.historySaveAction
+        "object:modified": this.historySaveAction,
       })
     }
+
+    // fabric.Canvas.prototype.getSelectedObject = function(evt) {
+    //   console.log('오브젝트 선택', evt.target.type);
+    //   if(evt.target.type === 'i-text') {
+    //     console.log('폰트 사이즈', evt.target.fontSize);
+    //     this.fontSize = evt.target.fontSize
+    //   }
+    // }
 
     fabric.Canvas.prototype.historyNext = function () {
       return JSON.stringify(this.toDatalessJSON(this.extraProps));
@@ -220,7 +235,15 @@ export default {
   mounted() {
     this.ref = this.$refs.can;
     this.canvas = new fabric.Canvas(this.ref);
+
+    const objectSelectHandler = function (evt) {
+      if(evt.target.type === 'i-text') {
+        this.fontSize = evt.target.fontSize
+      }
+    };
+
     this.canvas.historyInit();
+    this.canvas.on("object:selected", objectSelectHandler)
     this.data = this.canvas;
 
     let items = window.sessionStorage.getItem('testImg');
@@ -290,9 +313,18 @@ export default {
     },
     loadObjects() {
       const json = window.localStorage.getItem('_tempItems');
+      const parsedJSON = JSON.parse(json)  // JSON을 load 할땐 파싱하면 인식못하기에 파싱된 데이터는 따로 저장
+      
       if(json) {
-        this.canvas.loadFromJSON(json, this.canvas.renderAll.bind(this.canvas), function(o, object) {
-          fabric.log(o, object);
+        this.canvas.loadFromJSON(json, this.canvas.renderAll.bind(this.canvas), (o, object) => {// eslint-disable-line no-unused-vars
+          if(parsedJSON.backgroundImage) {
+            this.canvas.setHeight(parsedJSON.backgroundImage.height);
+
+            this.canvas.setBackgroundImage(parsedJSON.backgroundImage.src, this.canvas.renderAll.bind(this.canvas), {
+              scaleX: this.canvas.width / parsedJSON.backgroundImage.width,
+              scaleY: this.canvas.height / parsedJSON.backgroundImage.height
+            });
+          }
         })
       }
     },
@@ -382,15 +414,53 @@ export default {
         this.canvas.renderAll();
       })
     },
-    copyObject() {
-      this.canvas.getActiveObject().clone(cloned => {
-        console.log('왓?', cloned);
-        this.clipboard = cloned;
+    setGroup() {
+      const activeObj = this.canvas.getActiveObject();
+      console.log('여러개?', activeObj);
+
+      if(!activeObj) {
+        return;
+      }
+
+      const activegroup = activeObj.toGroup();
+      console.log('그룹화?', activegroup);
+
+      const objectsInGroup = activegroup.getObjects();
+
+      activegroup.clone(newgroup => {
+          this.canvas.remove(activegroup);
+
+          objectsInGroup.forEach(object => {
+            this.canvas.remove(object);  
+          });
+          this.canvas.add(newgroup);
       });
     },
+    setUngroup() {
+      const activeObject = this.canvas.getActiveObject();
 
-    pasteObject() {
-      this.clipboard.clone(clonedObj => {
+      if(!activeObject) {
+        return;
+      }
+
+      if(activeObject.type=="group"){
+          const items = activeObject._objects;
+          activeObject._restoreObjectsState();
+          this.canvas.remove(activeObject);
+
+          for(let i = 0; i < items.length; i++) {
+            this.canvas.add(items[i]);
+            this.canvas.item(this.canvas.size()-1).hasControls = true;
+          }
+          this.canvas.renderAll();
+      }
+    },
+    copyObject() {
+      this.canvas.getActiveObject().clone(cloned => {
+        console.log('cloned', cloned)
+        // 복사 메서드 사용하면 선택된 오브젝트가 인자로 넘어옴. 그게 바로 cloned
+        // this.clipboard = cloned;
+        cloned.clone(clonedObj => {
         this.canvas.discardActiveObject();
         clonedObj.set({
           left: clonedObj.left + 10,
@@ -406,12 +476,31 @@ export default {
         } else {
           this.canvas.add(clonedObj);
         }
-        
+
         this.clipboard.top += 10;
         this.clipboard.left += 10;
         this.canvas.setActiveObject(clonedObj);
         this.canvas.requestRenderAll();
       });
+      });
+    },
+
+    setIndex(direction) {
+      const activeObj = this.canvas.getActiveObject();  // 현재 선택된 오브젝트
+      const zIndex = activeObj.getZIndex();  // 선택된 오브젝트의 z-index 값
+
+      if(direction === 'forward') {
+        activeObj.moveTo(zIndex + 1);
+      } else {
+        activeObj.moveTo(zIndex - 1);
+      }
+    },
+    getSelectedObject(evt) {
+      console.log('오브젝트 선택', evt.target.type);
+      if(evt.target.type === 'i-text') {
+        console.log('폰트 사이즈', evt.target.fontSize);
+        this.fontSize = evt.target.fontSize
+      }
     }
   }
 }
@@ -425,4 +514,3 @@ export default {
 }
 
 </style>
-
