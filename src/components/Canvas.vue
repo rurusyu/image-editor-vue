@@ -12,6 +12,8 @@
     <button @click="history('undo')">Undo</button>
     <button @click="history('redo')">Redo</button>
     <button @click="loadObjects">이미지 불러오기</button>
+    <button @click="copyObject">이미지 복사</button>
+    <button @click="pasteObject">이미지 붙여넣기</button>
     <sketch-picker v-if="colorPicker" v-model="colors" @input="setBackgroundColor" />
   </div>
 </template>
@@ -36,7 +38,8 @@ export default {
       colors: {
         rgba: { r: 255, g: 255, b: 255, a: 1 },
         a: 1
-      }
+      },
+      clipboard: {},
     }
   },
   props:{
@@ -379,33 +382,37 @@ export default {
         this.canvas.renderAll();
       })
     },
-    changeText() {
-      //  message,
-      //  text = new fabric.IText('Type some Text', {
-      //     fontFamily: 'Arial',
-      //     fontSize: 25,
-      //   });
-
-      // canvas.add(text);
-      // canvas.renderAll();
-
-      // var fontControl = $('#font-control');
-      // $(document.body).on('change', '#font-control', function () {
-      //     text.fontFamily = fontControl.val();
-      //     /* text.fontSize = 30 */
-      //     text.fontSize = 25;
-      //     text.stroke = '#ff0000';
-      //     canvas.renderAll();
-      // });
-      // textBoxChanged(e) {
-      //     var target = e.target;
-      //     message = target.value;
-      //     drawScreen();
-      // },
-      // updateControls() {
-      //     textControl.value = canvas.getActiveObject().getText();
-      // }
+    copyObject() {
+      this.canvas.getActiveObject().clone(cloned => {
+        console.log('왓?', cloned);
+        this.clipboard = cloned;
+      });
     },
+
+    pasteObject() {
+      this.clipboard.clone(clonedObj => {
+        this.canvas.discardActiveObject();
+        clonedObj.set({
+          left: clonedObj.left + 10,
+          top: clonedObj.top + 10,
+          evented: true,
+        });
+        if (clonedObj.type === 'activeSelection') {
+          clonedObj.canvas = this.canvas;
+          clonedObj.forEachObject(function(obj) {
+            this.canvas.add(obj);
+          });
+          clonedObj.setCoords();
+        } else {
+          this.canvas.add(clonedObj);
+        }
+        
+        this.clipboard.top += 10;
+        this.clipboard.left += 10;
+        this.canvas.setActiveObject(clonedObj);
+        this.canvas.requestRenderAll();
+      });
+    }
   }
 }
 </script>
