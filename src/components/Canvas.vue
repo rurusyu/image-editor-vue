@@ -7,18 +7,19 @@
       v-model="fontSize"
       @change="setFontSize"
     />
-    <canvas ref="can" width="1080" height="300" class="canvas1" id="canvas" ></canvas>
+    <canvas ref="can" width="1080" height="1080" class="canvas1" id="canvas" ></canvas>
     <button @click="saveObjects">Save</button>
     <button @click="history('undo')">Undo</button>
     <button @click="history('redo')">Redo</button>
+    <button @click="loadObjects">이미지 불러오기</button>
     <sketch-picker v-if="colorPicker" v-model="colors" @input="setBackgroundColor" />
   </div>
 </template>
 
 <script>
-
 import { fabric } from 'fabric';
 import { Sketch } from 'vue-color';
+import axios from 'axios';
 
 export default {
   name: 'Canvas',
@@ -81,45 +82,66 @@ export default {
       }
     },
     images() {
+      console.log('첨부한 파일 정보', this.$props.images[this.$props.images.length - 1]);
       const fileType = this.$props.images[this.$props.images.length - 1].type;
-      const url = this.$props.images[this.$props.images.length - 1];
+      const url = URL.createObjectURL(this.$props.images[this.$props.images.length - 1]);
       console.log('파일 타입 체크', fileType);
 
       fabric.Image.fromURL(url, img => {
+        console.log('이미지 정보', img);
         // img.set({
-        //     width: 1080,
-        //     height: 1080,
+        //     width: 300,
+        //     height: 300,
         //  });
-        //  this.canvas.add(img);
+         this.canvas.add(img);
         // const canvas = document.getElementById('canvas');
         // this.canvas.height = img.height;
-        this.canvas.setHeight(img.height);
+        // this.canvas.setHeight(img.height);
         
-        this.canvas.setBackgroundImage(img, this.canvas.renderAll.bind(this.canvas), {
-            scaleX: this.canvas.width / img.width,
-            scaleY: this.canvas.height / img.height
-        });
+        // this.canvas.setBackgroundImage(img, this.canvas.renderAll.bind(this.canvas), {
+        //     scaleX: this.canvas.width / img.width,
+        //     scaleY: this.canvas.height / img.height
+        // });
       })
 
       this.canvas.renderAll();
       this.bringToFront();
     },
     download() {
-      if(this.$props.download) {
-        const canvas = document.getElementById('canvas');
-        const dataURL = canvas.toDataURL({ multiplier: 3 });
+      // console.log('이게 오브젝트화', this.canvas.toObject());
+      // const test = JSON.stringify(this.canvas);
+      // console.log('canvas to JSON', test)
 
-        var link = document.createElement('a');
-
-        link.addEventListener('click', function() {
-          link.href = dataURL;
-          link.download = "mypainting.png";
-        }, false);
-        document.body.appendChild(link);
-
-        link.click();
+      let canvasJSON = {
+        "objects": this.canvas.toObject().objects,
       }
-    }
+
+      console.log(canvasJSON);
+
+      canvasJSON = JSON.stringify(canvasJSON);
+      window.sessionStorage.setItem('testCanvas', canvasJSON);
+      // if(this.$props.download) {
+        // const canvas = document.getElementById('canvas');
+        // const dataURL = canvas.toDataURL({ multiplier: 3 });
+
+        // const blobFile = this.dataURItoBlob(dataURL);
+        // const imageURL = URL.createObjectURL(blobFile);
+
+        // console.log('이미지 url', imageURL);
+        // console.log('blobFile', blobFile);
+
+        // var link = document.createElement('a');
+        // console.log('canvas Image', dataURL);
+
+        // link.addEventListener('click', function() {
+        //   link.href = dataURL;
+        //   link.download = "mypainting.png";
+        // }, false);
+        // document.body.appendChild(link);
+
+        // link.click();
+      // }
+    },
   },
   created() {
     fabric.Canvas.prototype.historyInit = function () {
@@ -198,12 +220,18 @@ export default {
     this.canvas.historyInit();
     this.data = this.canvas;
 
-    let items = window.localStorage.getItem('_tempItems');
+    let items = window.sessionStorage.getItem('testImg');
+    // items = JSON.parse(items);
 
     if(items) {
-      this.canvas.loadFromJSON(items, function(o, object) {
-        fabric.log(o, object);
-      });
+      // this.canvas.loadFromJSON(items, function(o, object) {
+      //   fabric.log(o, object);
+      // });
+    //  this.canvas.loadFromJSON(JSON.parse(items), this.canvas.renderAll.bind(this.canvas), function(o, object) {
+    //     if (object.type == 'image') {
+    //       object.setSrc(items.url, this.canvas.renderAll.bind(this.canvas))
+    //     }
+    //  });
     }
   },
   methods:{
@@ -211,9 +239,59 @@ export default {
       var activeObj = this.canvas.getActiveObject();
       activeObj && this.canvas.bringToFront(activeObj).discardActiveObject(activeObj).renderAll();
     },
-    saveObjects() {
-      console.log('이거 뭐야?', this.canvas._objects);
-      // window.localStorage.setItem('_tempItems', JSON.stringify({objects: this.canvas._objects}));
+    async saveObjects() {
+      // window.localStorage.setItem('_tempItems', JSON.stringify({objects: this.canvas._objects, backgroundImage: this.canvas.backgroundImage}));
+      const canvas = document.getElementById('canvas');
+      const dataURL = canvas.toDataURL({ multiplier: 3 });
+
+      const blobFile = this.dataURItoBlob(dataURL);
+      const imageURL = URL.createObjectURL(blobFile);
+
+      console.log('blobFile', blobFile);
+      console.log('이미지 url', imageURL);
+      console.log('캔버스 배경색', this.canvas.backgroundColor);
+
+      const imgObject = {
+        stage: '1-1',
+        stageImage: imageURL,
+        stageInfo: {
+          backgroundImage: this.canvas.backgroundImage,
+          backgroundColor: this.canvas.backgroundColor,
+          objects: this.canvas._objects,
+        }
+      }
+
+      /*
+      {
+        stage: 1-1,
+        stageImage: '이미지 파일 (URL ? Blob?)',
+        stageInfo : {
+          backgroundImage: 'dsadsa.jpg',
+          objects: [
+            {
+                type: 'image',
+                src: 'blob:http://localhost:8080/a862a43d-d1ab-4f3c-8209-c1e104fbe48b',
+                기타 등등 정보...
+            }
+        }
+      }
+      */
+
+      const res = await axios.post('http://localhost:80/stage', imgObject);
+      console.log('요청 결과', res);
+
+      if(res.status === 200) {
+        window.localStorage.setItem('_tempItems', JSON.stringify(res.data.returnData.stageInfo));
+        setTimeout(this.loadObjects, 2000)
+      }
+    },
+    loadObjects() {
+      const json = window.localStorage.getItem('_tempItems');
+      if(json) {
+        this.canvas.loadFromJSON(json, this.canvas.renderAll.bind(this.canvas), function(o, object) {
+          fabric.log(o, object);
+        })
+      }
     },
     addRect() {
       let rect = new fabric.Rect({
@@ -252,25 +330,54 @@ export default {
     },
     setFontSize(e) {
       const activeObj = this.canvas.getActiveObject();
-      activeObj.setFontSize(e.target.value);
-      // activeObj.fontSize = e.target.value;
+      // activeObj.setFontSize(e.target.value);
+      activeObj.fontSize = e.target.value;
       this.fontSize = e.target.value;
 
       this.canvas.renderAll();
     },
     setBackgroundColor (value) {
-      console.log('색상', value);
       this.canvas.setBackgroundColor(value.hex8, this.canvas.renderAll.bind(this.canvas));
       this.canvas.renderAll();
     },
     history(state) {
-      console.log('상태 변경', this.canvas.historyUndo);
       
       if(state === 'undo') {
         this.canvas.undo()
       } else {
         this.canvas.redo()
       }
+    },
+    dataURItoBlob(dataURI) {
+      // convert base64 to raw binary data held in a string
+      // doesn't handle URLEncoded DataURIs - see SO answer #6850276 for code that does this
+      var byteString = atob(dataURI.split(',')[1]);
+
+      // separate out the mime component
+      var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]
+
+      // write the bytes of the string to an ArrayBuffer
+      var ab = new ArrayBuffer(byteString.length);
+
+      // create a view into the buffer
+      var ia = new Uint8Array(ab);
+
+      // set the bytes of the buffer to the correct values
+      for (var i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+      }
+
+      // write the ArrayBuffer to a blob, and you're done
+      var blob = new Blob([ab], {type: mimeString});
+      return blob;
+    },
+    loadImageFromURL() {
+      let can_img = window.localStorage.getItem('_tempItems');
+
+      fabric.Image.fromURL(can_img, img => {
+        this.canvas.add(img);
+        this.canvas.renderAll();
+      })
     },
     changeText() {
       //  message,
@@ -290,15 +397,15 @@ export default {
       //     text.stroke = '#ff0000';
       //     canvas.renderAll();
       // });
+      // textBoxChanged(e) {
+      //     var target = e.target;
+      //     message = target.value;
+      //     drawScreen();
+      // },
+      // updateControls() {
+      //     textControl.value = canvas.getActiveObject().getText();
+      // }
     },
-    // textBoxChanged(e) {
-    //     var target = e.target;
-    //     message = target.value;
-    //     drawScreen();
-    // },
-    // updateControls() {
-    //     textControl.value = canvas.getActiveObject().getText();
-    // }
   }
 }
 </script>

@@ -10,6 +10,10 @@
         <button type="button" @click="onBackImgDeleted">배경이미지 삭제</button>
       </div>
       <div class="inputWrapper object">
+        <span>이미지 객체 선택</span>
+        <input type="file" class="fileInput" ref="uploadImageFile" @change="onFileSelected" />
+      </div>
+      <div class="inputWrapper object">
         <button type="button" @click="onObjectCreate('rect')">사각형 생성</button>
       </div>
       <div class="inputWrapper object">
@@ -64,6 +68,7 @@ export default {
       const image = event.target.files[0];
 
       this.backgroundImage = { 'image': URL.createObjectURL(image)};
+      window.sessionStorage.setItem('testImg', JSON.stringify(this.backgroundImage));
       event.target.value ='';
       this.colorPicker = false;
       
@@ -75,7 +80,7 @@ export default {
     onFileSelected(event) {
       const image = event.target.files[0];
 
-      this.images.push(URL.createObjectURL(image));
+      this.images.push(image);
       event.target.value ='';
     },
     onObjectCreate(shape) {
