@@ -15,8 +15,8 @@
     <button @click="copyObject">이미지 복사</button>
     <button @click="setIndex('forward')">한 단계 앞으로</button>
     <button @click="setIndex('backward')">한 단계 뒤로</button>
-    <button @click="setGroup">그룹으로 묶기</button>
-    <button @click="setUngroup">그룹 해제</button>
+    <!-- <button @click="setGroup">그룹으로 묶기</button>
+    <button @click="setUngroup">그룹 해제</button> -->
     <sketch-picker v-if="colorPicker" v-model="colors" @input="setBackgroundColor" />
   </div>
 </template>
@@ -24,7 +24,7 @@
 <script>
 import { fabric } from 'fabric';
 import { Sketch } from 'vue-color';
-import axios from 'axios';
+import axios from 'axios';// eslint-disable-line no-unused-vars
 
 export default {
   name: 'Canvas',
@@ -43,6 +43,7 @@ export default {
         a: 1
       },
       clipboard: {},
+      count: 0,
     }
   },
   props:{
@@ -61,6 +62,10 @@ export default {
      colorPicker: {
        type: Boolean,
        required: true,
+     },
+     currCanvas: {
+       type: Object,
+       required: false,
      }
   },
   watch: {
@@ -148,6 +153,15 @@ export default {
         // link.click();
       // }
     },
+    currCanvas() {
+      if(this.$props.currCanvas) {
+        const json = JSON.stringify(this.$props.currCanvas);
+
+        // this.canvas.loadFromJSON(json, this.canvas.renderAll.bind(this.canvas))
+        this.canvas.loadFromJSON(json, this.canvas.renderAll.bind(this.canvas));
+        this.count = this.$props.currCanvas.stage.slice(2);
+      }
+    }
   },
   created() {
     fabric.Object.prototype.getZIndex = function() {
@@ -157,6 +171,7 @@ export default {
     fabric.Canvas.prototype.historyInit = function () {
       this.historyUndo = [];
       this.historyRedo = [];
+      this.undoCount = 0;
       this.historyNextState = this.historyNext();
 
       // vue watch? 혹은 어딘가에서 canvas.on 이벤트 밑에 3개 감시하고 있다가
@@ -193,6 +208,11 @@ export default {
     // 되돌리기
     fabric.Canvas.prototype.undo = function (callback) {
       this.historyProcessing = true;
+
+      if(this.undoCount > 50) {
+        alert('최대 되돌리기 횟수 50회 초과');
+        return;
+      }
 
       const history = this.historyUndo.pop();
       if (history) {
@@ -277,8 +297,7 @@ export default {
       console.log('이미지 url', imageURL);
       console.log('캔버스 배경색', this.canvas.backgroundColor);
 
-      const imgObject = {
-        stage: '1-1',
+      const imgObject = {// eslint-disable-line no-unused-vars
         stageImage: imageURL,
         stageInfo: {
           backgroundImage: this.canvas.backgroundImage,
@@ -286,6 +305,16 @@ export default {
           objects: this.canvas._objects,
         }
       }
+
+      this.$store.dispatch("stageList", {
+          stage: `1-${this.count}`,
+          backgroundImage: this.canvas.backgroundImage,
+          backgroundColor: this.canvas.backgroundColor,
+          objects: this.canvas._objects,
+        })
+
+        this.count += 1;
+      // window.sessionStorage.setItem('canvas_1', JSON.stringify({objects: this.canvas._objects, backgroundImage: this.canvas.backgroundImage, backgroundColor: this.canvas.backgroundColor}));
 
       /*
       {
@@ -303,13 +332,13 @@ export default {
       }
       */
 
-      const res = await axios.post('http://localhost:80/stage', imgObject);
-      console.log('요청 결과', res);
+      // const res = await axios.post('http://localhost:80/stage', imgObject);
+      // console.log('요청 결과', res);
 
-      if(res.status === 200) {
-        window.localStorage.setItem('_tempItems', JSON.stringify(res.data.returnData.stageInfo));
-        setTimeout(this.loadObjects, 2000)
-      }
+      // if(res.status === 200) {
+      //   window.localStorage.setItem('_tempItems', JSON.stringify(res.data.returnData.stageInfo));
+      //   setTimeout(this.loadObjects, 2000)
+      // }
     },
     loadObjects() {
       const json = window.localStorage.getItem('_tempItems');
@@ -414,47 +443,47 @@ export default {
         this.canvas.renderAll();
       })
     },
-    setGroup() {
-      const activeObj = this.canvas.getActiveObject();
-      console.log('여러개?', activeObj);
+    // setGroup() {
+    //   const activeObj = this.canvas.getActiveObject();
+    //   console.log('여러개?', activeObj);
 
-      if(!activeObj) {
-        return;
-      }
+    //   if(!activeObj) {
+    //     return;
+    //   }
 
-      const activegroup = activeObj.toGroup();
-      console.log('그룹화?', activegroup);
+    //   const activegroup = activeObj.toGroup();
+    //   console.log('그룹화?', activegroup);
 
-      const objectsInGroup = activegroup.getObjects();
+    //   const objectsInGroup = activegroup.getObjects();
 
-      activegroup.clone(newgroup => {
-          this.canvas.remove(activegroup);
+    //   activegroup.clone(newgroup => {
+    //       this.canvas.remove(activegroup);
 
-          objectsInGroup.forEach(object => {
-            this.canvas.remove(object);  
-          });
-          this.canvas.add(newgroup);
-      });
-    },
-    setUngroup() {
-      const activeObject = this.canvas.getActiveObject();
+    //       objectsInGroup.forEach(object => {
+    //         this.canvas.remove(object);  
+    //       });
+    //       this.canvas.add(newgroup);
+    //   });
+    // },
+    // setUngroup() {
+    //   const activeObject = this.canvas.getActiveObject();
 
-      if(!activeObject) {
-        return;
-      }
+    //   if(!activeObject) {
+    //     return;
+    //   }
 
-      if(activeObject.type=="group"){
-          const items = activeObject._objects;
-          activeObject._restoreObjectsState();
-          this.canvas.remove(activeObject);
+    //   if(activeObject.type=="group"){
+    //       const items = activeObject._objects;
+    //       activeObject._restoreObjectsState();
+    //       this.canvas.remove(activeObject);
 
-          for(let i = 0; i < items.length; i++) {
-            this.canvas.add(items[i]);
-            this.canvas.item(this.canvas.size()-1).hasControls = true;
-          }
-          this.canvas.renderAll();
-      }
-    },
+    //       for(let i = 0; i < items.length; i++) {
+    //         this.canvas.add(items[i]);
+    //         this.canvas.item(this.canvas.size()-1).hasControls = true;
+    //       }
+    //       this.canvas.renderAll();
+    //   }
+    // },
     copyObject() {
       this.canvas.getActiveObject().clone(cloned => {
         console.log('cloned', cloned)

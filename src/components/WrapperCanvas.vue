@@ -1,7 +1,7 @@
 <template>
   <div class="wapper-canvas">
     <div v-for="(item, index) in NumberOfCanvas" :key="item" @click="selectCanvas(index+1)">
-      <canvas-view ref="foo" :backgroundImage="backgroundImage" :colorPicker="colorPicker" :images="images" :download="download" ></canvas-view>
+      <canvas-view ref="foo" :backgroundImage="backgroundImage" :colorPicker="colorPicker" :images="images" :download="download" :currCanvas="currCanvas" ></canvas-view>
     </div>
   
   </div>
@@ -40,6 +40,10 @@ export default {
     colorPicker: {
       type: Boolean,
       required: true
+    },
+    currCanvas: {
+      type: Object,
+      required: false,
     }
   },
   watch:{

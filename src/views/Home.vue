@@ -23,6 +23,12 @@
         <button type="button" @click="onObjectCreate('text')">텍스트 생성</button>
       </div>
       <button @click="exportToPng">다운로드</button>
+      <hr />
+      <ul>
+        <li v-for="(stage, idx) in $store.getters.getStageList" :key="stage.stage" @click="getCanvas(idx)">
+          {{ idx }}
+        </li>
+      </ul>
     </div>
     <div>
       <wrapper-canvas 
@@ -32,6 +38,7 @@
         :colorPicker="colorPicker"
         :images="images"
         :download="download"
+        :currCanvas="currCanvas"
         />
     </div>
   
@@ -54,7 +61,8 @@ export default {
       backgroundImage: {},
       colorPicker: true,
       images: [],
-      download: false
+      download: false,
+      currCanvas: {},
     }
   },
   mounted(){
@@ -88,6 +96,10 @@ export default {
     },
     exportToPng() {
       this.download = !this.download;
+    },
+    getCanvas(idx) {
+      const currentCanvas = this.$store.getters.getStage(idx);
+      this.currCanvas = currentCanvas;
     }
   }
 }
