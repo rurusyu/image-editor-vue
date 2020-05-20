@@ -156,9 +156,24 @@ export default {
     currCanvas() {
       if(this.$props.currCanvas) {
         const json = JSON.stringify(this.$props.currCanvas);
+        console.log(json);
 
         // this.canvas.loadFromJSON(json, this.canvas.renderAll.bind(this.canvas))
         this.canvas.loadFromJSON(json, this.canvas.renderAll.bind(this.canvas));
+
+        if(!this.$props.currCanvas.backgroundImage) {
+          this.canvas.setHeight(1080);
+          this.canvas.setBackgroundImage(null, this.canvas.renderAll.bind(this.canvas))
+        } else {
+          fabric.Image.fromURL(this.$props.currCanvas.backgroundImage.src, img => {
+            this.canvas.setHeight(img.height);
+            
+            this.canvas.setBackgroundImage(img, this.canvas.renderAll.bind(this.canvas), {
+              scaleX: this.canvas.width / img.width,
+              scaleY: this.canvas.height / img.height
+            });
+          })
+        }
         this.count = this.$props.currCanvas.stage.slice(2);
       }
     }
