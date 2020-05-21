@@ -15,9 +15,8 @@
     <button @click="copyObject">이미지 복사</button>
     <button @click="setIndex('forward')">한 단계 앞으로</button>
     <button @click="setIndex('backward')">한 단계 뒤로</button>
+    <button @click="removeObject">선택한 객체 삭제</button>
     <button @click="clearCanvas">전체 삭제</button>
-    <!-- <button @click="setGroup">그룹으로 묶기</button>
-    <button @click="setUngroup">그룹 해제</button> -->
     <sketch-picker v-if="colorPicker" v-model="colors" @input="setBackgroundColor" />
   </div>
 </template>
@@ -45,7 +44,7 @@ export default {
         a: 1
       },
       clipboard: {},
-      count: 0,
+      count: 0, // 로컬 작업용
     }
   },
   props:{
@@ -96,66 +95,17 @@ export default {
       const url = URL.createObjectURL(this.$props.images[this.$props.images.length - 1]);
 
       fabric.Image.fromURL(url, img => {
-        console.log('이미지 정보', img);
-        // img.set({
-        //     width: 300,
-        //     height: 300,
-        //  });
         this.canvas.add(img);
-        // const canvas = document.getElementById('canvas');
-        // this.canvas.height = img.height;
-        // this.canvas.setHeight(img.height);
-        
-        // this.canvas.setBackgroundImage(img, this.canvas.renderAll.bind(this.canvas), {
-        //     scaleX: this.canvas.width / img.width,
-        //     scaleY: this.canvas.height / img.height
-        // });
       })
 
       this.canvas.renderAll();
-      this.bringToFront();
     },
-    download() {
-      // console.log('이게 오브젝트화', this.canvas.toObject());
-      // const test = JSON.stringify(this.canvas);
-      // console.log('canvas to JSON', test)
-
-      let canvasJSON = {
-        "objects": this.canvas.toObject().objects,
-      }
-
-      console.log(canvasJSON);
-
-      canvasJSON = JSON.stringify(canvasJSON);
-      window.sessionStorage.setItem('testCanvas', canvasJSON);
-      // if(this.$props.download) {
-        // const canvas = document.getElementById('canvas');
-        // const dataURL = canvas.toDataURL({ multiplier: 3 });
-
-        // const blobFile = this.dataURItoBlob(dataURL);
-        // const imageURL = URL.createObjectURL(blobFile);
-
-        // console.log('이미지 url', imageURL);
-        // console.log('blobFile', blobFile);
-
-        // var link = document.createElement('a');
-        // console.log('canvas Image', dataURL);
-
-        // link.addEventListener('click', function() {
-        //   link.href = dataURL;
-        //   link.download = "mypainting.png";
-        // }, false);
-        // document.body.appendChild(link);
-
-        // link.click();
-      // }
-    },
+  
     currCanvas() {
+      // 스테이지지1-1, 1-2 등등 클릭시 캔버스 SnapShot JSON을 받아와서 뿌림
       if(this.$props.currCanvas) {
         const json = JSON.stringify(this.$props.currCanvas);
-        console.log(json);
 
-        // this.canvas.loadFromJSON(json, this.canvas.renderAll.bind(this.canvas))
         this.canvas.loadFromJSON(json, this.canvas.renderAll.bind(this.canvas));
 
         if(!this.$props.currCanvas.backgroundImage) {
@@ -171,6 +121,7 @@ export default {
             });
           })
         }
+        // 단순 Local 작업용. API 붙으면 삭제
         this.count = this.$props.currCanvas.stage.slice(2);
       }
     }
@@ -181,45 +132,27 @@ export default {
   mounted() {
     this.ref = this.$refs.can;
     this.canvas = new fabric.Canvas(this.ref);
-    this.canvas.undoCount = 0;
-
-    // this.canvas.historyInit();
-    this.canvas.on("object:selected", this.getSelectedObject)
     this.data = this.canvas;
-
-    let items = window.sessionStorage.getItem('testImg');
-    // items = JSON.parse(items);
-
-    if(items) {
-      // this.canvas.loadFromJSON(items, function(o, object) {
-      //   fabric.log(o, object);
-      // });
-    //  this.canvas.loadFromJSON(JSON.parse(items), this.canvas.renderAll.bind(this.canvas), function(o, object) {
-    //     if (object.type == 'image') {
-    //       object.setSrc(items.url, this.canvas.renderAll.bind(this.canvas))
-    //     }
-    //  });
-    }
+    this.canvas.undoCount = 0;
+    this.canvas.on("object:selected", this.getSelectedObject)
   },
   methods:{
     clearCanvas() {
       this.canvas.clear();
     },
+    removeObject() {
+      this.canvas.remove(this.canvas.getActiveObject());
+    },
     bringToFront() {
-      var activeObj = this.canvas.getActiveObject();
+      const activeObj = this.canvas.getActiveObject();
       activeObj && this.canvas.bringToFront(activeObj).discardActiveObject(activeObj).renderAll();
     },
     async saveObjects() {
-      // window.localStorage.setItem('_tempItems', JSON.stringify({objects: this.canvas._objects, backgroundImage: this.canvas.backgroundImage}));
       const canvas = document.getElementById('canvas');
       const dataURL = canvas.toDataURL({ multiplier: 3 });
 
       const blobFile = this.dataURItoBlob(dataURL);
       const imageURL = URL.createObjectURL(blobFile);
-
-      console.log('blobFile', blobFile);
-      console.log('이미지 url', imageURL);
-      console.log('캔버스 배경색', this.canvas.backgroundColor);
 
       const imgObject = {// eslint-disable-line no-unused-vars
         stageImage: imageURL,
@@ -235,10 +168,10 @@ export default {
           backgroundImage: this.canvas.backgroundImage,
           backgroundColor: this.canvas.backgroundColor,
           objects: this.canvas._objects,
+          undoCount: this.canvas.undoCount,
         })
 
         this.count += 1;
-      // window.sessionStorage.setItem('canvas_1', JSON.stringify({objects: this.canvas._objects, backgroundImage: this.canvas.backgroundImage, backgroundColor: this.canvas.backgroundColor}));
 
       /*
       {
@@ -318,12 +251,10 @@ export default {
     },
     setFontSize(e) {
       const activeObj = this.canvas.getActiveObject();
-      // activeObj.setFontSize(e.target.value);
       activeObj.fontSize = e.target.value;
       this.fontSize = e.target.value;
 
       this.canvas._historySaveAction();
-
       this.canvas.renderAll();
     },
     setBackgroundColor (value) {
@@ -346,67 +277,21 @@ export default {
       }
     },
     dataURItoBlob(dataURI) {
-      // convert base64 to raw binary data held in a string
-      // doesn't handle URLEncoded DataURIs - see SO answer #6850276 for code that does this
       var byteString = atob(dataURI.split(',')[1]);
 
-      // separate out the mime component
       var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]
 
-      // write the bytes of the string to an ArrayBuffer
       var ab = new ArrayBuffer(byteString.length);
 
-      // create a view into the buffer
       var ia = new Uint8Array(ab);
 
-      // set the bytes of the buffer to the correct values
       for (var i = 0; i < byteString.length; i++) {
           ia[i] = byteString.charCodeAt(i);
       }
-
-      // write the ArrayBuffer to a blob, and you're done
       var blob = new Blob([ab], {type: mimeString});
       return blob;
     },
-    // setGroup() {
-    //   const activeObj = this.canvas.getActiveObject();
-
-    //   if(!activeObj) {
-    //     return;
-    //   }
-
-    //   const activegroup = activeObj.toGroup();
-
-    //   const objectsInGroup = activegroup.getObjects();
-
-    //   activegroup.clone(newgroup => {
-    //       this.canvas.remove(activegroup);
-
-    //       objectsInGroup.forEach(object => {
-    //         this.canvas.remove(object);  
-    //       });
-    //       this.canvas.add(newgroup);
-    //   });
-    // },
-    // setUngroup() {
-    //   const activeObject = this.canvas.getActiveObject();
-
-    //   if(!activeObject) {
-    //     return;
-    //   }
-
-    //   if(activeObject.type=="group"){
-    //       const items = activeObject._objects;
-    //       activeObject._restoreObjectsState();
-    //       this.canvas.remove(activeObject);
-
-    //       for(let i = 0; i < items.length; i++) {
-    //         this.canvas.add(items[i]);
-    //         this.canvas.item(this.canvas.size()-1).hasControls = true;
-    //       }
-    //       this.canvas.renderAll();
-    //   }
-    // },
+  
     copyObject() {
       this.canvas.getActiveObject().clone(cloned => {
         // 복사 메서드 사용하면 선택된 오브젝트가 인자로 넘어옴. 그게 바로 cloned
@@ -442,15 +327,14 @@ export default {
 
       if(direction === 'forward') {
         activeObj.moveTo(zIndex + 1);
+        this.canvas.renderAll();
       } else {
         activeObj.moveTo(zIndex - 1);
+        this.canvas.renderAll();
       }
     },
     getSelectedObject(evt) {
-      console.log('이벤트', evt);
       if(evt.target.type === 'i-text') {
-        console.log('폰트 사이즈', evt.target.fontSize);
-        
         this.fontSize = evt.target.fontSize
       }
     }

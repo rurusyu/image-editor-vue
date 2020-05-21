@@ -112,6 +112,7 @@ fabric.Canvas.prototype.redo = function (callback) {
   // To ignore those events, we are setting a flag.
   this.historyProcessing = true;
   const history = this.historyRedo.pop();
+
   if (history) {
     // Every redo action is actually a new action to the undo history
     this.historyUndo.push(this._historyNext());

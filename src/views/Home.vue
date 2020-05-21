@@ -22,7 +22,6 @@
       <div class="inputWrapper object">
         <button type="button" @click="onObjectCreate('text')">텍스트 생성</button>
       </div>
-      <button @click="exportToPng">다운로드</button>
       <hr />
       <ul>
         <li v-for="(stage, idx) in $store.getters.getStageList" :key="stage.stage" @click="getCanvas(idx)">
