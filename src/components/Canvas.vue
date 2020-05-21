@@ -15,6 +15,7 @@
     <button @click="copyObject">이미지 복사</button>
     <button @click="setIndex('forward')">한 단계 앞으로</button>
     <button @click="setIndex('backward')">한 단계 뒤로</button>
+    <button @click="clearCanvas">전체 삭제</button>
     <!-- <button @click="setGroup">그룹으로 묶기</button>
     <button @click="setUngroup">그룹 해제</button> -->
     <sketch-picker v-if="colorPicker" v-model="colors" @input="setBackgroundColor" />
@@ -25,6 +26,7 @@
 import { fabric } from 'fabric';
 import { Sketch } from 'vue-color';
 import axios from 'axios';// eslint-disable-line no-unused-vars
+import CanvasMixin from '@/mixin/canvasMixin';
 
 export default {
   name: 'Canvas',
@@ -72,9 +74,7 @@ export default {
     deep: true,
     backgroundImage: {
       handler() {
-        // const fileType = this.$props.images[this.$props.images.length - 1].type;
-        const url = this.$props.backgroundImage.image
-        // console.log('파일 타입 체크', fileType);
+        const url = this.$props.backgroundImage.image;
 
         if(!url) {
           this.canvas.setHeight(1080);
@@ -82,7 +82,7 @@ export default {
         } else {
           fabric.Image.fromURL(url, img => {
             this.canvas.setHeight(img.height);
-            
+
             this.canvas.setBackgroundImage(img, this.canvas.renderAll.bind(this.canvas), {
               scaleX: this.canvas.width / img.width,
               scaleY: this.canvas.height / img.height
@@ -93,10 +93,7 @@ export default {
       }
     },
     images() {
-      console.log('첨부한 파일 정보', this.$props.images[this.$props.images.length - 1]);
-      const fileType = this.$props.images[this.$props.images.length - 1].type;
       const url = URL.createObjectURL(this.$props.images[this.$props.images.length - 1]);
-      console.log('파일 타입 체크', fileType);
 
       fabric.Image.fromURL(url, img => {
         console.log('이미지 정보', img);
@@ -104,7 +101,7 @@ export default {
         //     width: 300,
         //     height: 300,
         //  });
-         this.canvas.add(img);
+        this.canvas.add(img);
         // const canvas = document.getElementById('canvas');
         // this.canvas.height = img.height;
         // this.canvas.setHeight(img.height);
@@ -179,106 +176,15 @@ export default {
     }
   },
   created() {
-    fabric.Object.prototype.getZIndex = function() {
-      return this.canvas.getObjects().indexOf(this);
-    }
-
-    fabric.Canvas.prototype.historyInit = function () {
-      this.historyUndo = [];
-      this.historyRedo = [];
-      this.undoCount = 0;
-      this.historyNextState = this.historyNext();
-
-      // vue watch? 혹은 어딘가에서 canvas.on 이벤트 밑에 3개 감시하고 있다가
-      // 그대로 실행? this.historySaveAction(this.canvas); this를 줘야 undefined 안 나올테니
-
-      this.on({
-        "object:added": this.historySaveAction,
-        "object:removed": this.historySaveAction,
-        "object:modified": this.historySaveAction,
-      })
-    }
-
-    // fabric.Canvas.prototype.getSelectedObject = function(evt) {
-    //   console.log('오브젝트 선택', evt.target.type);
-    //   if(evt.target.type === 'i-text') {
-    //     console.log('폰트 사이즈', evt.target.fontSize);
-    //     this.fontSize = evt.target.fontSize
-    //   }
-    // }
-
-    fabric.Canvas.prototype.historyNext = function () {
-      return JSON.stringify(this.toDatalessJSON(this.extraProps));
-    }
-
-    fabric.Canvas.prototype.historySaveAction = function () {
-      if (this.historyProcessing)
-        return;
-
-      const json = this.historyNextState;
-      this.historyUndo.push(json);
-      this.historyNextState = this.historyNext();
-    }
-
-    // 되돌리기
-    fabric.Canvas.prototype.undo = function (callback) {
-      this.historyProcessing = true;
-
-      if(this.undoCount > 50) {
-        alert('최대 되돌리기 횟수 50회 초과');
-        return;
-      }
-
-      const history = this.historyUndo.pop();
-      if (history) {
-        // 방금 취소한 행동을 기록하기 위해 배열에 넣음
-        this.historyRedo.push(this.historyNext());
-        this.historyNextState = history;
-        this._loadHistory(history, 'history:undo', callback);
-      } else {
-        this.historyProcessing = false;
-      }
-
-      this.historyProcessing = false;
-    },
-
-    // 되돌리기 실행 취소
-    fabric.Canvas.prototype.redo = function (callback) {
-      this.historyProcessing = true;
-      const history = this.historyRedo.pop();
-      if (history) {
-        this.historyUndo.push(this.historyNext());
-        this.historyNextState = history;
-        this._loadHistory(history, 'history:redo', callback);
-      } else {
-        this.historyProcessing = false;
-      }
-    },
-
-    fabric.Canvas.prototype._loadHistory = function(history, event, callback) {
-      let _this = this;
-
-      this.loadFromJSON(history, function() {
-        _this.renderAll();
-        _this.historyProcessing = false;
-
-      if (callback && typeof callback === 'function')
-        callback();
-      });
-    }
+    new CanvasMixin().init();
   },
   mounted() {
     this.ref = this.$refs.can;
     this.canvas = new fabric.Canvas(this.ref);
+    this.canvas.undoCount = 0;
 
-    const objectSelectHandler = function (evt) {
-      if(evt.target.type === 'i-text') {
-        this.fontSize = evt.target.fontSize
-      }
-    };
-
-    this.canvas.historyInit();
-    this.canvas.on("object:selected", objectSelectHandler)
+    // this.canvas.historyInit();
+    this.canvas.on("object:selected", this.getSelectedObject)
     this.data = this.canvas;
 
     let items = window.sessionStorage.getItem('testImg');
@@ -296,6 +202,9 @@ export default {
     }
   },
   methods:{
+    clearCanvas() {
+      this.canvas.clear();
+    },
     bringToFront() {
       var activeObj = this.canvas.getActiveObject();
       activeObj && this.canvas.bringToFront(activeObj).discardActiveObject(activeObj).renderAll();
@@ -378,7 +287,7 @@ export default {
         top: 10,
         height: 50,
         width: 50,
-        fill: 'green',
+        // fill: 'green',
         stroke:'black'
       })
       this.canvas.add(rect);
@@ -391,7 +300,7 @@ export default {
         radius: 30,
         strokeWidth: 1,
         stroke: 'black',
-        fill: 'green',
+        // fill: 'green',
         selectable: true,
         originX: 'center', originY: 'center'
       })
@@ -413,6 +322,8 @@ export default {
       activeObj.fontSize = e.target.value;
       this.fontSize = e.target.value;
 
+      this.canvas._historySaveAction();
+
       this.canvas.renderAll();
     },
     setBackgroundColor (value) {
@@ -420,10 +331,17 @@ export default {
       this.canvas.renderAll();
     },
     history(state) {
-      
       if(state === 'undo') {
-        this.canvas.undo()
+        this.canvas.undoCount += 1;
+
+        if(this.canvas.undoCount > 50) {
+          alert('되돌리기 50회 초과');
+          return;
+        } else {
+          this.canvas.undo()
+        }
       } else {
+        this.canvas.undoCount -= 1;
         this.canvas.redo()
       }
     },
@@ -450,24 +368,14 @@ export default {
       var blob = new Blob([ab], {type: mimeString});
       return blob;
     },
-    loadImageFromURL() {
-      let can_img = window.localStorage.getItem('_tempItems');
-
-      fabric.Image.fromURL(can_img, img => {
-        this.canvas.add(img);
-        this.canvas.renderAll();
-      })
-    },
     // setGroup() {
     //   const activeObj = this.canvas.getActiveObject();
-    //   console.log('여러개?', activeObj);
 
     //   if(!activeObj) {
     //     return;
     //   }
 
     //   const activegroup = activeObj.toGroup();
-    //   console.log('그룹화?', activegroup);
 
     //   const objectsInGroup = activegroup.getObjects();
 
@@ -501,31 +409,30 @@ export default {
     // },
     copyObject() {
       this.canvas.getActiveObject().clone(cloned => {
-        console.log('cloned', cloned)
         // 복사 메서드 사용하면 선택된 오브젝트가 인자로 넘어옴. 그게 바로 cloned
         // this.clipboard = cloned;
         cloned.clone(clonedObj => {
-        this.canvas.discardActiveObject();
-        clonedObj.set({
-          left: clonedObj.left + 10,
-          top: clonedObj.top + 10,
-          evented: true,
-        });
-        if (clonedObj.type === 'activeSelection') {
-          clonedObj.canvas = this.canvas;
-          clonedObj.forEachObject(function(obj) {
-            this.canvas.add(obj);
+          this.canvas.discardActiveObject();
+          clonedObj.set({
+            left: clonedObj.left + 10,
+            top: clonedObj.top + 10,
+            evented: true,
           });
-          clonedObj.setCoords();
-        } else {
-          this.canvas.add(clonedObj);
-        }
+          if (clonedObj.type === 'activeSelection') {
+            clonedObj.canvas = this.canvas;
+            clonedObj.forEachObject(function(obj) {
+              this.canvas.add(obj);
+            });
+            clonedObj.setCoords();
+          } else {
+            this.canvas.add(clonedObj);
+          }
 
-        this.clipboard.top += 10;
-        this.clipboard.left += 10;
-        this.canvas.setActiveObject(clonedObj);
-        this.canvas.requestRenderAll();
-      });
+          this.clipboard.top += 10;
+          this.clipboard.left += 10;
+          this.canvas.setActiveObject(clonedObj);
+          this.canvas.requestRenderAll();
+        });
       });
     },
 
@@ -540,9 +447,10 @@ export default {
       }
     },
     getSelectedObject(evt) {
-      console.log('오브젝트 선택', evt.target.type);
+      console.log('이벤트', evt);
       if(evt.target.type === 'i-text') {
         console.log('폰트 사이즈', evt.target.fontSize);
+        
         this.fontSize = evt.target.fontSize
       }
     }

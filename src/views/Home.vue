@@ -93,6 +93,7 @@ export default {
     },
     onObjectCreate(shape) {
       this.addShape = shape;
+      setTimeout(() => this.addShape = '', 100);
     },
     exportToPng() {
       this.download = !this.download;

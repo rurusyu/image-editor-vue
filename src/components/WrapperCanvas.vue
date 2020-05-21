@@ -70,8 +70,8 @@ export default {
     loadRef(){
       console.log('ref클릭', this.$refs.foo[0].addRect());
     },
-    selectCanvas(index){
-      console.log('클릭',index);
+    selectCanvas(index){// eslint-disable-line no-unused-vars
+      // console.log('클릭',index);
     },
   }
 }
