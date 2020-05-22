@@ -3,7 +3,7 @@
     <input
       type="range"
       min="20"
-      max="150"
+      max="72"
       v-model="fontSize"
       @change="setFontSize"
     />
@@ -27,7 +27,6 @@
 <script>
 import { fabric } from 'fabric';
 import { Sketch } from 'vue-color';
-import axios from 'axios';// eslint-disable-line no-unused-vars
 import CanvasMixin from '@/mixin/canvasMixin';
 
 export default {
@@ -189,7 +188,7 @@ export default {
       const parsedJSON = JSON.parse(json)  // JSON을 load 할땐 파싱하면 인식못하기에 파싱된 데이터는 따로 저장
       
       if(json) {
-        this.canvas.loadFromJSON(json, this.canvas.renderAll.bind(this.canvas), (o, object) => {// eslint-disable-line no-unused-vars
+        this.canvas.loadFromJSON(json, this.canvas.renderAll.bind(this.canvas), () => {
           if(parsedJSON.backgroundImage) {
             this.canvas.setHeight(parsedJSON.backgroundImage.height);
 
