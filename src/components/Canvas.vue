@@ -13,6 +13,9 @@
     <button @click="history('redo')">Redo</button>
     <button @click="loadObjects">이미지 불러오기</button>
     <button @click="copyObject">이미지 복사</button>
+    <button @click="changeAlign(0)">텍스트 왼쪽정렬</button>
+    <button @click="changeAlign(1)">텍스트 가운데정렬</button>
+    <button @click="changeAlign(2)">텍스트 오른쪽정렬</button>
     <button @click="setIndex('forward')">한 단계 앞으로</button>
     <button @click="setIndex('backward')">한 단계 뒤로</button>
     <button @click="removeObject">선택한 객체 삭제</button>
@@ -137,6 +140,14 @@ export default {
     this.canvas.on("object:selected", this.getSelectedObject)
   },
   methods:{
+    changeAlign(idx){
+      const activeObj = this.canvas.getActiveObject();
+      const align = ["left", "center", "right"];
+      const positionX = align[idx];
+
+      activeObj.set('textAlign', positionX);
+      this.canvas.renderAll();
+    },
     clearCanvas() {
       this.canvas.clear();
     },
@@ -172,30 +183,6 @@ export default {
         })
 
         this.count += 1;
-
-      /*
-      {
-        stage: 1-1,
-        stageImage: '이미지 파일 (URL ? Blob?)',
-        stageInfo : {
-          backgroundImage: 'dsadsa.jpg',
-          objects: [
-            {
-                type: 'image',
-                src: 'blob:http://localhost:8080/a862a43d-d1ab-4f3c-8209-c1e104fbe48b',
-                기타 등등 정보...
-            }
-        }
-      }
-      */
-
-      // const res = await axios.post('http://localhost:80/stage', imgObject);
-      // console.log('요청 결과', res);
-
-      // if(res.status === 200) {
-      //   window.localStorage.setItem('_tempItems', JSON.stringify(res.data.returnData.stageInfo));
-      //   setTimeout(this.loadObjects, 2000)
-      // }
     },
     loadObjects() {
       const json = window.localStorage.getItem('_tempItems');
@@ -335,6 +322,7 @@ export default {
     },
     getSelectedObject(evt) {
       if(evt.target.type === 'i-text') {
+        console.log(evt.target);
         this.fontSize = evt.target.fontSize
       }
     }
