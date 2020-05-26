@@ -134,7 +134,6 @@ export default {
   mounted() {
     this.ref = this.$refs.can;
     this.canvas = new fabric.Canvas(this.ref);
-    this.data = this.canvas;
     this.canvas.undoCount = 0;
     this.canvas.on("object:selected", this.getSelectedObject)
   },
