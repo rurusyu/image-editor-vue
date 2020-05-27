@@ -9,6 +9,7 @@
     />
     <canvas ref="can" width="1080" height="1080" class="canvas1" id="canvas" ></canvas>
     <button @click="saveObjects">Save</button>
+    <button @click="setDrawingMode">Drawing Mode</button>
     <button @click="history('undo')">Undo</button>
     <button @click="history('redo')">Redo</button>
     <button @click="loadObjects">이미지 불러오기</button>
@@ -106,6 +107,7 @@ export default {
     currCanvas() {
       // 스테이지지1-1, 1-2 등등 클릭시 캔버스 SnapShot JSON을 받아와서 뿌림
       if(this.$props.currCanvas) {
+        console.log('받아온 캔버스 데이터', this.$props.currCanvas);
         const json = JSON.stringify(this.$props.currCanvas);
 
         this.canvas.loadFromJSON(json, this.canvas.renderAll.bind(this.canvas));
@@ -133,11 +135,16 @@ export default {
   },
   mounted() {
     this.ref = this.$refs.can;
-    this.canvas = new fabric.Canvas(this.ref);
+    this.canvas = new fabric.Canvas(this.ref, {
+      isDrawingMode: true
+    });
     this.canvas.undoCount = 0;
     this.canvas.on("object:selected", this.getSelectedObject)
   },
   methods:{
+    setDrawingMode() {
+      this.canvas.isDrawingMode = !this.canvas.isDrawingMode;
+    },
     changeAlign(idx){
       const activeObj = this.canvas.getActiveObject();
       const align = ["left", "center", "right"];
@@ -333,6 +340,10 @@ export default {
   left: 0px;
   top: 0px;
   /* transform: rotate(0deg); */
+}
+
+button {
+  font-size: 12px;
 }
 
 </style>
